@@ -160,19 +160,38 @@ def customer_modify_information():
 
         return msg
 
-# @app.route("/seller/history", methods=['GET', 'POST'])
-# def get_customer_history():
-#     rsp=""
-#     if request.method == 'POST':
-#         data = json.loads(request.get_data())
-#         email = data['email']
-#         sql = "SELECT o.OID, o.Time, o.Status FROM Places p, Orders o WHERE p.Email = '{}' AND p.OID = o.OID".format(email)
-#         result = db.session.execute(sql).fetchall()
-#         json_list=[]
-#         for row in result:
-#             json_list.append([x for x in row])       
+@app.route("/customer/search", methods=['GET', 'POST'])
+def search():
+    rsp=""
+    if request.method == 'POST':
+        data = json.loads(request.get_data())
+       
+        item = data['search_details']
+        low_price = data['filter_conditions']['lowest_price']
+        high_price = data['filter_conditions']['highest_price']
+        sort= data['filter_conditions']['order']
+        print(type(low_price))
+        json_list=[]
+        if sort =="increasing_order":
+          print("in")
+          try:
+            sql = "SELECT m.MID, m.Name, m.Price, m.RemainingAmount, m.Description, m.Picture1, m.Picture2, m.Picture3 FROM Merchandises m WHERE m.Description LIKE '%{}%' AND m.Price >= {} AND m.Price <= {} ORDER BY m.Price ASC".format(item, low_price, high_price)
+            result = db.session.execute(sql).fetchall()
+            print("incre")
+          except Exception as err:
+            return {"message": "input is wrong"}
+         
+        else:
+          try:
+            sql = "SELECT m.MID, m.Name, m.Price, m.RemainingAmount, m.Description, m.Picture1, m.Picture2, m.Picture3 FROM Merchandises m WHERE m.Description LIKE '%{}%' AND m.Price >= {} AND m.Price <= {} ORDER BY m.Price DESC".format(item, low_price, high_price)
+            result = db.session.execute(sql).fetchall()
+          except Exception as err:
+            return {"message": "input is wrong"}
 
-#     return json_list
+        for row in result:
+            json_list.append([x for x in row])       
+
+    return json_list
 
 @app.route("/people/<email>", methods=["GET"])
 def get_customer_by_email(email):
