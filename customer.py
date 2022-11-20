@@ -30,6 +30,7 @@ with app.app_context():
 def home():
     return 'Hello World!'
 
+
 #{"username":"ywang", "password":"0002", "email": "wg@gmail.com", "address": "400w"}
 @app.route('/customer/register', methods=['GET', 'POST'])
 def register():
@@ -46,48 +47,23 @@ def register():
             sql = "SELECT COUNT('{}') FROM Customers where email = '{}' ".format(email, email)
             result = db.session.execute(sql).fetchall()[0][0]
         except Exception as err:
-            return {"message": "error! input error"}
+            return {"state": False, "message": "error! input error"}
         
         print(result)
         if result > 0:
-            response = {"message": "error! email is used"}
+            response = {"state": False,"message": "error! email is used"}
         else:
             try:
                 sql= "INSERT INTO Customers VALUES ('{}', '{}', '{}', '{}');".format(email,username, password, address)
                 db.session.execute(sql)
             except Exception as err:
-                return {"message": "error! input error"}
+                return {"state": False,"message": "error! input error"}
             sql = 'select * from Customers'
             result = db.session.execute(sql)
             print(result.fetchall())
             
-            response = {"message": "register successfully"}
+            response = {"state": True,"message": "register successfully"}
        
-    return response
-
-def sreach(data):
-    
-    password = data['password']
-    email = data['email']
-    try:
-        sql = "SELECT * FROM Customers where email = '{}' ".format(email)
-        result = db.session.execute(sql).fetchone()
-    except Exception as err:
-        return {"message": "error! input error"}
-    
-    if result :
-        stored_password= result[2]
-        print(stored_password)
-        if stored_password == password:
-            print("successfully")
-            response ={"message":"login successfully"}
-        else:
-            print("unmatch")
-            response = {"message":"password unmatch"}
-    else:
-        print("please register")
-        response= {"message": "you need to register firstly"}
-    
     return response
 
 
@@ -103,28 +79,98 @@ def login():
             sql = "SELECT * FROM Customers where email = '{}' ".format(email)
             result = db.session.execute(sql).fetchone()
         except Exception as err:
-            return {"message": "error! input error"}
+            return {"state": False, "message": "error! input error"}
         
+        if result :
+            stored_username= result[1]
+            stored_password= result[2]
+            stored_address= result[3]
+            print(stored_username)
+            if stored_password == password:
+                print("successfully")
+                response= {"state": False, "message":"login successfully", "username": stored_username, "address": stored_address}
+            else:
+                print("unmatch")
+                response= {"state": False,"message":"password unmatch"}
+        else:
+            print("please register")
+            response= {"state": False, "message": "you need to register firstly"}
+        
+    return response
+
+@app.route('/customer/modifyPassword', methods=['GET', 'POST'])
+def customer_modify_password():
+    if request.method == 'POST':
+        data = json.loads(request.get_data())
+        email = data['email']
+        oldpwd = data['currPw']
+        newpwd = data['modifiedPw']
+
+        try:
+            sql = "SELECT * FROM Customers where Email = '{}' AND Pwd = '{}'".format(email, oldpwd)
+            result = db.session.execute(sql).fetchone()
+        except Exception as err:
+            return {"message": "error! change password error"}
+
         if result :
             stored_password= result[2]
             print(stored_password)
-            if stored_password == password:
-                print("successfully")
-                return {"message":"login successfully"}
-            else:
-                print("unmatch")
-                return {"message":"password unmatch"}
+            try: 
+                sql = "UPDATE Customers SET Pwd = '{}' where Email = '{}'".format(newpwd, email)
+                db.session.execute(sql)
+            except Exception as err:
+                return {"message": "error! change password error"}
+            try:
+                sql = 'select * from Customers'
+                result = db.session.execute(sql)
+                print(result.fetchall())
+            except Exception as err:
+                return {"message": "error! change password error"}
+            msg = "password modified successfully"
         else:
-            print("please register")
-            return {"message": "you need to register firstly"}
-        
-    return msg
-        
+            msg = "old password unmatch"
+
+        return msg
+
+#{"address":"aaaa", "email": "wang@gmail.com", "username":"yifan"}
+@app.route('/customer/modifyInfo', methods=['GET', 'POST'])
+def customer_modify_information():
+    if request.method == 'POST':
+        data = json.loads(request.get_data())
+        email = data['email']
+        username = data['username']
+        address = data['address']
 
         
-    
+        try: 
+            sql = "UPDATE Customers SET Name = '{}', address = '{}'  where Email = '{}'".format(username, address, email)
+            db.session.execute(sql)
+        except Exception as err:
+            return {"message": "error! change information error"}
+        
+        try:
+            sql = 'select * from Customers'
+            result = db.session.execute(sql)
+            print(result.fetchall())
+        except Exception as err:
+            return {"message": "error! change information error"}
+        
+        msg = "information modified successfully"
 
-    
+        return msg
+
+# @app.route("/customer/history", methods=['GET', 'POST'])
+# def get_customer_history():
+#     rsp=""
+#     if request.method == 'POST':
+#         data = json.loads(request.get_data())
+#         email = data['email']
+#         sql = "select * from Orders " 
+#         result = db.session.execute(sql).fetchall()
+#         print(result)
+
+#     return rsp
+
 @app.route("/people/<email>", methods=["GET"])
 def get_customer_by_email(email):
     
@@ -147,6 +193,4 @@ def get_customer_by_email(email):
     
 
 if __name__=='__main__':
-    # db.create_all() # 创建这两个表
-    sreach({"password":"0002", "email": "da@gmail.com"})
     app.run(host='0.0.0.0', port=8080, debug=True)
