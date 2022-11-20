@@ -88,7 +88,7 @@ def login():
             print(stored_username)
             if stored_password == password:
                 print("successfully")
-                response= {"state": False, "message":"login successfully", "username": stored_username, "address": stored_address}
+                response= {"state": True, "message":"login successfully", "username": stored_username, "address": stored_address}
             else:
                 print("unmatch")
                 response= {"state": False,"message":"password unmatch"}
@@ -159,17 +159,19 @@ def customer_modify_information():
 
         return msg
 
-# @app.route("/customer/history", methods=['GET', 'POST'])
-# def get_customer_history():
-#     rsp=""
-#     if request.method == 'POST':
-#         data = json.loads(request.get_data())
-#         email = data['email']
-#         sql = "select * from Orders " 
-#         result = db.session.execute(sql).fetchall()
-#         print(result)
+@app.route("/customer/history", methods=['GET', 'POST'])
+def get_customer_history():
+    rsp=""
+    if request.method == 'POST':
+        data = json.loads(request.get_data())
+        email = data['email']
+        sql = "SELECT o.OID, o.Time, o.Status FROM Places p, Orders o WHERE p.Email = '{}' AND p.OID = o.OID".format(email)
+        result = db.session.execute(sql).fetchall()
+        json_list=[]
+        for row in result:
+            json_list.append([x for x in row])       
 
-#     return rsp
+    return json_list
 
 @app.route("/people/<email>", methods=["GET"])
 def get_customer_by_email(email):
